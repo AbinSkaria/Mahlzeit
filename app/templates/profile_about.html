@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% from "_macros.html" import err, progress %}
+{% block title %}About you · Mahlzeit!{% endblock %}
+{% block content %}
+<section class="form-page">
+  {{ progress(steps, step_no) }}
+  <h1>Tell us a little about you.</h1>
+  <p class="muted">No name needed. At the table you're <strong class="lunch-id">#{{ user.lunch_id }}</strong>, your Lunch ID.</p>
+
+  {% if errors %}<p class="alert" role="alert">A few things need a look. They're marked below.</p>{% endif %}
+
+  <form method="post" action="/profile/about" class="profile-form" novalidate>
+    <fieldset class="block {% if errors.role %}has-error{% endif %}">
+      <legend><span class="q-num">1</span> Which describes you?</legend>
+      <div class="choice-cards">
+        {% for key, (label, desc) in opt.ROLES.items() %}
+          <label class="choice-card {{ key }}">
+            <input type="radio" name="role" value="{{ key }}" {% if p.get('role') == key %}checked{% endif %}>
+            <span class="choice-title">{{ label }}</span>
+            <span class="choice-desc">{{ desc }}</span>
+          </label>
+        {% endfor %}
+      </div>
+      {{ err(errors, 'role') }}
+    </fieldset>
+
+    <fieldset class="block {% if errors.faculty %}has-error{% endif %}">
+      <legend><span class="q-num">2</span> What do you study?</legend>
+      <select name="faculty" id="faculty" aria-label="Faculty">
+        <option value="" {% if not p.get('faculty') %}selected{% endif %} disabled>Choose your faculty</option>
+        {% for f in opt.FACULTIES %}
+          <option value="{{ f }}" {% if p.get('faculty') == f %}selected{% endif %}>{{ f }}</option>
+        {% endfor %}
+      </select>
+      {{ err(errors, 'faculty') }}
+    </fieldset>
+
+    <fieldset class="block {% if errors.languages %}has-error{% endif %}">
+      <legend><span class="q-num">3</span> Which languages are you happy to chat in over lunch?</legend>
+      <div class="chips">
+        {% for code, label in opt.LANGUAGES %}
+          <label class="chip">
+            <input type="checkbox" name="languages" value="{{ code }}" {% if code in (p.get('languages') or []) %}checked{% endif %}>
+            <span lang="{{ code }}">{{ label }}</span>
+          </label>
+        {% endfor %}
+      </div>
+      <p class="hint">Pick all that apply. Learning German? Tick it, your table will go slow.</p>
+      {{ err(errors, 'languages') }}
+    </fieldset>
+
+    <fieldset class="block {% if errors.answers %}has-error{% endif %}">
+      <legend><span class="q-num">4</span> Quick: this or that?</legend>
+      <p class="hint top">Pick at least 3. Your table gets conversation starters from what you share.</p>
+      <div class="tot-list">
+        {% for key, a, b in opt.THIS_OR_THAT %}
+          {% set cur = (p.get('answers') or {}).get(key) %}
+          <div class="tot">
+            <label class="tot-opt"><input type="radio" name="tot_{{ key }}" value="{{ a }}" {% if cur == a %}checked{% endif %}><span>{{ a }}</span></label>
+            <span class="tot-or">or</span>
+            <label class="tot-opt"><input type="radio" name="tot_{{ key }}" value="{{ b }}" {% if cur == b %}checked{% endif %}><span>{{ b }}</span></label>
+          </div>
+        {% endfor %}
+      </div>
+      {{ err(errors, 'answers') }}
+    </fieldset>
+
+    <div class="step-nav">
+      <a href="/home" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary">Next: where &amp; when</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

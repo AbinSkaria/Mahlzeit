@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Table cards · Mahlzeit!{% endblock %}
+{% block body_class %}cards-page{% endblock %}
+{% block content %}
+<section class="cards-intro no-print">
+  <p class="eyebrow">For the Fit4Germany team</p>
+  <h1>Table cards</h1>
+  {% if rnd %}
+    <p class="muted">Print these and put one on each table at the Mensa. The code is how students prove they were there,
+      so only show it at the table.</p>
+    <button class="btn btn-primary" onclick="window.print()">Print</button>
+    <a class="btn btn-secondary" href="/admin">Back to admin</a>
+  {% else %}
+    <p class="muted">Run the matching first.</p>
+  {% endif %}
+</section>
+{% if rnd %}
+  <div class="card-sheet">
+    {% for t in rnd.tables %}
+      <article class="table-card-print">
+        <p class="tc-brand">Mahlzeit! · Fit4Germany</p>
+        <p class="tc-no">{{ t.table_no }}</p>
+        <p class="tc-where">{{ mensa_name(t.mensa) }}<br>{{ slot_label(t.slot) }}</p>
+        <p class="tc-code-label">Check-in code</p>
+        <p class="tc-code">{{ t.checkin_code }}</p>
+        <p class="tc-help">Open My lunches and type this code.<br>Then say which animal you are.</p>
+      </article>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

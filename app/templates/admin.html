@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Admin · Mahlzeit!{% endblock %}
+{% block content %}
+{% set langs = dict(opt.LANGUAGES) %}
+<section class="admin">
+  <p class="eyebrow">Fit4Germany team</p>
+  <h1>This week's tables</h1>
+  {% if demo_admin %}
+    <p class="hint">Demo mode: every logged-in user can see this page. Set <code>MAHLZEIT_ADMINS</code> to restrict it.</p>
+  {% endif %}
+
+  <!-- Success measure 1: balanced registrations -->
+  <h2 class="admin-h">Registrations</h2>
+  <div class="stat-row">
+    <div class="stat"><span class="stat-num">{{ stats.registered }}</span><span class="stat-label">registered</span></div>
+    <div class="stat newcomer"><span class="stat-num">{{ stats.newcomers }}</span><span class="stat-label">new to Germany</span></div>
+    <div class="stat local"><span class="stat-num">{{ stats.locals }}</span><span class="stat-label">locals</span></div>
+  </div>
+
+  {% if stats.registered %}
+    {% set share = (100 * stats.newcomers / stats.registered) | round | int %}
+    <div class="balance" aria-label="{{ share }}% newcomers, {{ 100 - share }}% locals">
+      <div class="balance-bar">
+        <span class="seg newcomer" style="width: {{ share }}%"></span>
+        <span class="seg local" style="width: {{ 100 - share }}%"></span>
+        <span class="target" title="50/50 target"></span>
+      </div>
+      <p class="hint">{{ share }}% newcomers · {{ 100 - share }}% locals. The line marks the 50/50 target.</p>
+      <ul class="campus-split">
+        {% for name, n, l in stats.by_mensa if n + l %}
+          <li><strong>{{ name }}</strong>: {{ n }} newcomers, {{ l }} locals</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <!-- Reports: Lunch IDs only; revealing an email is an explicit, logged action -->
+  <h2 class="admin-h" id="reports">Reports
+    {% set open_n = reports | selectattr('status', 'equalto', 'open') | list | length %}
+    {% if open_n %}<span class="tag danger-tag">{{ open_n }} open</span>{% endif %}</h2>
+  {% if paused %}
+    <p class="alert">Paused from matching (reported by {{ "2+" }} different people):
+      {% for uid, n in paused.items() %}{% set r = reports | selectattr('reported_id', 'equalto', uid) | first %}<span class="lunch-id">#{{ r.reported_lid }}</span> ({{ n }}){% if not loop.last %}, {% endif %}{% endfor %}.
+      Resolving their open reports lifts the pause.</p>
+  {% endif %}
+  {% if reports %}
+    <div class="report-list">
+      {% for r in reports %}
+        <article class="report-card {{ r.status }}" id="report-{{ r.id }}">
+          <header>
+            <strong>{{ r.category_label }}</strong>
+            <span class="tag {% if r.status == 'open' %}danger-tag{% endif %}">{{ r.status }}</span>
+          </header>
+          <p class="report-who">
+            {% if r.reported_id %}
+              {% set a = animal(r.reported_animal) %}Reported: {{ a[0] }} {{ a[1] }} <span class="lunch-id">#{{ r.reported_lid }}</span>
+            {% else %}Reported: <em>not sure which person</em>{% endif %}
+            · by {% set b = animal(r.reporter_animal) %}{{ b[0] }} <span class="lunch-id">#{{ r.reporter_lid }}</span>
+          </p>
+          <p class="hint">{% if r.table_no %}Table {{ r.table_no }} · {{ mensa_name(r.mensa) }} · {{ slot_label(r.slot) }} · {% endif %}{{ r.created_at }} UTC</p>
+          {% if r.details %}<blockquote>{{ r.details }}</blockquote>{% endif %}
+          {% if r.reveals %}
+            <p class="revealed">
+              {% if r.reported_email %}Reported person: <a href="mailto:{{ r.reported_email }}">{{ r.reported_email }}</a><br>{% endif %}
+              {% if r.reporter_email %}Reporter (agreed to be contacted): <a href="mailto:{{ r.reporter_email }}">{{ r.reporter_email }}</a>{% else %}Reporter did not agree to be contacted.{% endif %}
+            </p>
+            <p class="hint">Revealed by {{ r.reveal_info }}</p>
+          {% endif %}
+          <div class="report-actions">
+            {% if not r.reveals %}
+              <form method="post" action="/admin/reports/{{ r.id }}/reveal"
+                    onsubmit="return confirm('Reveal the email addresses behind this report? This is logged with your name.');">
+                <button class="btn btn-secondary small">Reveal emails (logged)</button>
+              </form>
+            {% endif %}
+            {% if r.status == 'open' %}
+              <form method="post" action="/admin/reports/{{ r.id }}/resolve"><button class="btn btn-secondary small">Mark resolved</button></form>
+            {% endif %}
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="hint">No reports. 🎉</p>
+  {% endif %}
+
+  <form method="post" action="/admin/match" class="run-form">
+    <button type="submit" class="btn btn-primary" {% if not stats.registered %}disabled{% endif %}>
+      {% if rnd %}Run matching again{% else %}Run matching{% endif %}
+    </button>
+    <span class="hint">Builds tables of four from every completed profile. Takes under a second.</span>
+  </form>
+
+  {% if rnd %}
+    {% set fs = rnd.feedback_stats %}
+    <!-- Success measures 2-4: show-up, coming back, lasting contact -->
+    <h2 class="admin-h">After the lunch</h2>
+    <div class="stat-row four">
+      <div class="stat"><span class="stat-num">{{ fs.responses }}<small>/{{ fs.seated }}</small></span><span class="stat-label">gave feedback</span></div>
+      <div class="stat"><span class="stat-num">{{ fs.verified_showed_up if fs.verified_showed_up is not none else '–' }}{% if fs.verified_showed_up is not none %}<small>%</small>{% endif %}</span><span class="stat-label">checked in with code ({{ fs.checked_in }}/{{ fs.seated }})</span></div>
+      <div class="stat"><span class="stat-num">{{ fs.join_again if fs.join_again is not none else '–' }}{% if fs.join_again is not none %}<small>%</small>{% endif %}</span><span class="stat-label">want another lunch</span></div>
+      <div class="stat"><span class="stat-num">{{ fs.tables_staying_in_touch }}</span><span class="stat-label">tables staying in touch</span></div>
+    </div>
+    <p class="hint">{% if fs.showed_up is not none %}Self-reported "I was there": {{ fs.showed_up }}% of answers. {% endif %}{% if fs.avg_rating is not none %}Average rating: {{ fs.avg_rating }} / 5.{% endif %}</p>
+
+    {% set seated = rnd.tables | map(attribute='people') | map('length') | sum %}
+    <section id="results" class="results">
+      <h2 class="admin-h">Tables <a class="btn btn-secondary small" href="/admin/cards">Print table cards</a></h2>
+      <p class="result-line">
+        <strong>{{ rnd.tables | length }}</strong> tables ·
+        <strong>{{ seated }}</strong> people seated ·
+        <strong>{{ rnd.waitlist | length }}</strong> on the waitlist
+        <span class="hint">· run at {{ rnd.created_at }} UTC</span>
+      </p>
+
+      <div class="table-grid">
+        {% for t in rnd.tables %}
+          <article class="table-card">
+            <header>
+              <span class="table-no">{{ t.table_no }}</span>
+              <div>
+                <h3>{{ slot_label(t.slot) }}</h3>
+                <p class="hint">Code <strong class="lunch-id">{{ t.checkin_code }}</strong> · {{ t.people | selectattr('checked_in_at') | list | length }}/{{ t.people | length }} checked in<br>{{ mensa_name(t.mensa) }} · speaks {% for l in t.languages %}{{ langs[l] }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
+              </div>
+            </header>
+            <ul class="seat-list">
+              {% for p in t.people %}
+                {% set f = t.feedback.get(p.user_id) %}
+                <li><span class="dot {{ p.role }}"></span>{{ p.emoji }} <span class="lunch-id">#{{ p.lunch_id }}</span>
+                  <span class="seat-meta">{{ age_label(p.age) }} · {{ p.faculty }}{% if p.friend_email %} · with friend{% endif %}
+                    {% if p.checked_in_at %} · ✓ checked in{% elif f %} · {% if f.attended == 'yes' %}says came{% elif f.attended == 'no' %}didn't come{% else %}feedback{% endif %}{% endif %}{% if f %}{% if f.rating %} {{ '★' * f.rating }}{% endif %}{% endif %}</span></li>
+              {% endfor %}
+            </ul>
+            {% if t.stay_in_touch %}<p class="touch-tag">♥ Everyone wants to stay in touch</p>{% endif %}
+            <details>
+              <summary>Conversation starters</summary>
+              <ul class="ice">{% for q in t.icebreakers %}<li>{{ q }}</li>{% endfor %}</ul>
+            </details>
+          </article>
+        {% endfor %}
+      </div>
+
+      {% if rnd.waitlist %}
+        <h2 class="wait-title">Waitlist <span class="hint">(placed first next round)</span></h2>
+        <ul class="waitlist">
+          {% for p in rnd.waitlist %}
+            <li><span class="dot {{ p.role }}"></span><span class="lunch-id">#{{ p.lunch_id }}</span>
+              <span class="seat-meta">{{ mensa_name(p.mensa) }} · {{ p.reason }}</span></li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </section>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Feedback · Mahlzeit!{% endblock %}
+{% block content %}
+<section class="form-page">
+  <p class="eyebrow">After your lunch · everything optional</p>
+  <h1>How was table {{ table.table_no }}?</h1>
+  <p class="muted">{{ slot_label(table.slot) }} at {{ mensa_name(table.mensa) }}. Thirty seconds, and it helps us make the next lunch better.</p>
+
+  <form method="post" action="/feedback" class="profile-form" novalidate>
+    <fieldset class="block">
+      <legend><span class="q-num">1</span> Did you make it to the lunch?</legend>
+      <div class="chips">
+        <label class="chip"><input type="radio" name="attended" value="yes" {% if f.attended == 'yes' %}checked{% endif %}><span>Yes, I was there</span></label>
+        <label class="chip"><input type="radio" name="attended" value="no" {% if f.attended == 'no' %}checked{% endif %}><span>No, I couldn't make it</span></label>
+      </div>
+    </fieldset>
+
+    <fieldset class="block">
+      <legend><span class="q-num">2</span> How was it?</legend>
+      <div class="rating">
+        {% for n, face, label in [(1,'😕','Not great'),(2,'😐','Meh'),(3,'🙂','OK'),(4,'😊','Good'),(5,'🤩','Loved it')] %}
+          <label class="rate">
+            <input type="radio" name="rating" value="{{ n }}" {% if f.rating == n %}checked{% endif %}>
+            <span><span class="face" aria-hidden="true">{{ face }}</span><span class="rate-label">{{ label }}</span></span>
+          </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <fieldset class="block">
+      <legend><span class="q-num">3</span> Stay in touch with this table?</legend>
+      <div class="chips">
+        <label class="chip"><input type="radio" name="meet_again" value="yes" {% if f.meet_again == 'yes' %}checked{% endif %}><span>Yes, I'd like that</span></label>
+        <label class="chip"><input type="radio" name="meet_again" value="no" {% if f.meet_again == 'no' %}checked{% endif %}><span>No, thanks</span></label>
+      </div>
+      <p class="hint">Only if <strong>everyone</strong> at your table says yes, we share your email addresses with each other. Otherwise nobody sees anything.</p>
+    </fieldset>
+
+    <fieldset class="block">
+      <legend><span class="q-num">4</span> Join another lunch with new people?</legend>
+      <div class="chips">
+        <label class="chip"><input type="radio" name="join_again" value="yes" {% if f.join_again == 'yes' %}checked{% endif %}><span>Yes</span></label>
+        <label class="chip"><input type="radio" name="join_again" value="maybe" {% if f.join_again == 'maybe' %}checked{% endif %}><span>Maybe</span></label>
+        <label class="chip"><input type="radio" name="join_again" value="no" {% if f.join_again == 'no' %}checked{% endif %}><span>No</span></label>
+      </div>
+    </fieldset>
+
+    <fieldset class="block">
+      <legend><span class="q-num">5</span> Anything else? <span class="optional">optional</span></legend>
+      <textarea name="comment" rows="3" maxlength="500" placeholder="What worked, what didn't, ideas for next time">{{ f.comment or '' }}</textarea>
+      <p class="hint">Please don't name other people here.</p>
+    </fieldset>
+
+    <div class="step-nav">
+      <a href="/home" class="btn btn-secondary">Skip</a>
+      <button type="submit" class="btn btn-primary">Send feedback</button>
+    </div>
+  </form>
+  <p class="report-link">Problem with someone at your table? <a href="/report">Report it privately</a>. Feedback stays anonymous; a report goes to the team.</p>
+</section>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% macro err(errors, name) -%}
+  {% if errors.get(name) %}<p class="field-error" role="alert">{{ errors[name] }}</p>{% endif %}
+{%- endmacro %}
+
+{# Progress across the three profile pages; feedback comes after the lunch. #}
+{% macro progress(steps, current) -%}
+  <ol class="progress" aria-label="Progress">
+    {% for key, (label, _) in steps.items() %}
+      <li class="{% if loop.index < current %}done{% elif loop.index == current %}current{% endif %}"
+          {% if loop.index == current %}aria-current="step"{% endif %}>
+        <span class="p-num">{% if loop.index < current %}✓{% else %}{{ loop.index }}{% endif %}</span>
+        <span class="p-label">{{ label }}</span>
+      </li>
+    {% endfor %}
+    <li class="later"><span class="p-num">♥</span><span class="p-label">Feedback after lunch</span></li>
+  </ol>
+{%- endmacro %}

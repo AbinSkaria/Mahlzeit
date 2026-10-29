@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Check your inbox · Mahlzeit!{% endblock %}
+{% block content %}
+<section class="auth-card">
+  <div class="envelope" aria-hidden="true">
+    <svg viewBox="0 0 64 48" width="64" height="48"><rect x="2" y="4" width="60" height="40" rx="6" class="env-body"/><path d="M4 8 L32 28 L60 8" class="env-flap"/></svg>
+  </div>
+  {% if demo_link %}
+    <h1>Almost there.</h1>
+    <p>In the live version, we'd now email a sign-in link to <strong>{{ email }}</strong>.</p>
+    <p class="muted">The link works once and expires in 15 minutes.</p>
+  {% else %}
+    <h1>Check your inbox.</h1>
+    <p>We sent a sign-in link to <strong>{{ email }}</strong>.</p>
+    <p class="muted">It works once and expires in 15 minutes. Don't see it? Check your spam folder.</p>
+  {% endif %}
+
+  {% if demo_link %}
+    <div class="demo-box">
+      <p><strong>Demo mode:</strong> no mail server is configured, so here's the link directly.</p>
+      <a class="btn btn-primary btn-block" href="{{ demo_link }}">Open sign-in link</a>
+    </div>
+  {% endif %}
+
+  <p class="fine-print"><a href="/login">Use a different email</a></p>
+</section>
+{% endblock %}

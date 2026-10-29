@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block content %}
+
+{% if deleted %}
+  <p class="success" role="status">Your account and all your data have been deleted.</p>
+{% endif %}
+
+<section class="hero">
+  <div class="hero-text">
+    <p class="eyebrow">Fit4Germany · THWS</p>
+    <h1>Lunch for four.</h1>
+    <p class="lede">
+      Two students who are new to Germany. Two who know their way around.
+      One table at the Mensa, once a week. We do the matching, you just show up hungry.
+    </p>
+    <div class="cta-row">
+      {% if user %}
+        <a class="btn btn-primary" href="/home">Go to my lunches</a>
+      {% else %}
+        <a class="btn btn-primary" href="/login">Join the next lunch</a>
+      {% endif %}
+      <p class="cta-note">About 90 seconds. No app, no password.</p>
+    </div>
+  </div>
+
+  <figure class="hero-art" aria-label="A round table with four plates, two for newcomers and two for locals">
+    <svg viewBox="0 0 360 320" role="img">
+      <!-- chairs -->
+      <rect class="chair" x="160" y="44"  width="40" height="20" rx="8"/>
+      <rect class="chair" x="160" y="276" width="40" height="20" rx="8"/>
+      <rect class="chair" x="54"  y="150" width="20" height="40" rx="8"/>
+      <rect class="chair" x="286" y="150" width="20" height="40" rx="8"/>
+      <!-- table -->
+      <circle class="table" cx="180" cy="170" r="98"/>
+      <circle class="table-inner" cx="180" cy="170" r="84"/>
+      <!-- plates: newcomers (accent) top + left, locals (green) bottom + right -->
+      <g class="plate newcomer"><circle cx="180" cy="106" r="24"/><circle class="food" cx="180" cy="106" r="13"/></g>
+      <g class="plate newcomer"><circle cx="116" cy="170" r="24"/><circle class="food" cx="116" cy="170" r="13"/></g>
+      <g class="plate local"><circle cx="180" cy="234" r="24"/><circle class="food" cx="180" cy="234" r="13"/></g>
+      <g class="plate local"><circle cx="244" cy="170" r="24"/><circle class="food" cx="244" cy="170" r="13"/></g>
+      <!-- table number flag -->
+      <g class="flag"><rect x="164" y="156" width="32" height="28" rx="6"/><text x="180" y="176" text-anchor="middle">3</text></g>
+      <!-- speech bubbles -->
+      <g class="bubble newcomer-b">
+        <rect x="22" y="40" width="74" height="36" rx="18"/><path d="M70 74 l10 16 l2 -16z"/>
+        <text x="59" y="64" text-anchor="middle">Hi!</text>
+      </g>
+      <g class="bubble local-b">
+        <rect x="238" y="246" width="104" height="36" rx="18"/><path d="M262 248 l-6 -16 l18 14z"/>
+        <text x="290" y="270" text-anchor="middle">Servus!</text>
+      </g>
+      <g class="bubble neutral-b">
+        <rect x="262" y="52" width="80" height="36" rx="18"/><path d="M280 86 l-8 14 l18 -12z"/>
+        <text x="302" y="76" text-anchor="middle">Ciao!</text>
+      </g>
+    </svg>
+    <figcaption>
+      <span class="dot newcomer"></span>new to Germany
+      <span class="dot local"></span>local
+    </figcaption>
+  </figure>
+</section>
+
+<section class="steps" aria-labelledby="how">
+  <h2 id="how">How it works</h2>
+  <ol class="step-list">
+    <li>
+      <span class="step-num">1</span>
+      <h3>Tell us a little</h3>
+      <p>Three short pages: a bit about you, which Mensa and times suit you, and who you'd like to meet. No name needed.</p>
+    </li>
+    <li>
+      <span class="step-num">2</span>
+      <h3>We set the table</h3>
+      <p>Every week we match groups of four with shared lunch times and something in common. You get an email with your table number.</p>
+    </li>
+    <li>
+      <span class="step-num">3</span>
+      <h3>Show up and eat</h3>
+      <p>Find your numbered table at the Mensa. Conversation starters are waiting. Afterwards, tell us how it went if you like.</p>
+    </li>
+  </ol>
+</section>
+
+<section class="sides" aria-labelledby="why">
+  <h2 id="why">What's in it for you</h2>
+  <div class="side-grid">
+    <article class="side-card newcomer-card">
+      <h3>New to Germany?</h3>
+      <ul>
+        <li>Meet students who actually live here, not just other internationals</li>
+        <li>Ask the questions nobody answers in the welcome week</li>
+        <li>Practice German at your own pace, or stick to English</li>
+      </ul>
+    </article>
+    <article class="side-card local-card">
+      <h3>Grew up here?</h3>
+      <ul>
+        <li>Practice your English before an exchange semester or job interview</li>
+        <li>Your third lunch is on us</li>
+        <li>Collect a certificate for your CV after three lunches</li>
+      </ul>
+    </article>
+  </div>
+
+  <div class="friend-callout">
+    <svg viewBox="0 0 48 48" width="40" height="40" aria-hidden="true"><circle cx="17" cy="18" r="7" class="icon-fill-a"/><circle cx="31" cy="18" r="7" class="icon-fill-b"/><path d="M5 40c1-8 6-12 12-12s11 4 12 12" class="icon-fill-a"/><path d="M19 40c1-8 6-12 12-12s11 4 12 12" class="icon-fill-b"/></svg>
+    <p><strong>Don't want to go alone?</strong> Sign up together with a friend. You two stay together, and we match you with another pair.</p>
+  </div>
+</section>
+
+<section class="privacy-strip" aria-labelledby="data">
+  <h2 id="data">Your data, kept small</h2>
+  <p>
+    No names: at the table you're a random Lunch ID like #K7P2QX. We store your university email (to sign in),
+    your Mensa, lunch times, languages, age group and this-or-that picks. Everything is deleted at the end of the semester.
+    <a href="/privacy">Read the details</a>
+  </p>
+</section>
+
+<section class="final-cta">
+  <h2>Next lunches start Monday.</h2>
+  {% if user %}
+    <a class="btn btn-primary" href="/home">Go to my lunches</a>
+  {% else %}
+    <a class="btn btn-primary" href="/login">Join the next lunch</a>
+  {% endif %}
+</section>
+
+{% endblock %}

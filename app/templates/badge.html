@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}I'm the {{ me.animal_name }} · Mahlzeit!{% endblock %}
+{% block head %}<meta http-equiv="refresh" content="20">{% endblock %}
+{% block body_class %}badge-page{% endblock %}
+{% block content %}
+<section class="badge">
+  <p class="badge-ok" role="status"><span aria-hidden="true">✓</span> Code accepted · table {{ table.table_no }}</p>
+  <div class="badge-emoji" aria-hidden="true">{{ me.emoji }}</div>
+  <h1>I'm the {{ me.animal_name }}</h1>
+  <p class="badge-sub">{{ mensa_name(table.mensa) }} · {{ slot_label(table.slot) }}</p>
+
+  <h2 class="badge-h">At this table</h2>
+  <ul class="badge-table">
+    {% for p in table.people %}
+      <li class="{% if p.checked_in_at %}here{% endif %} {% if p.user_id == user.id %}me{% endif %}">
+        <span class="b-emoji" aria-hidden="true">{{ p.emoji }}</span>
+        <span class="b-name">{% if p.user_id == user.id %}You, the {{ p.animal_name }}{% else %}The {{ p.animal_name }}{% endif %}</span>
+        <span class="b-state">{% if p.checked_in_at %}✓ here{% else %}not checked in yet{% endif %}</span>
+      </li>
+    {% endfor %}
+  </ul>
+  <p class="hint">This page refreshes by itself as others check in.</p>
+
+  <div class="badge-actions">
+    <a class="btn btn-primary btn-block" href="/feedback">I'm done with lunch</a>
+    <a class="btn btn-secondary btn-block" href="/home">Back to my lunches</a>
+  </div>
+</section>
+{% endblock %}

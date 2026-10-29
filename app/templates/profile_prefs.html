@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% from "_macros.html" import err, progress %}
+{% block title %}Who you'd like to meet · Mahlzeit!<script>
+  // Live labels for the sliders, and keep the two range handles from crossing.
+  (function () {
+    var MIN = {{ opt.AGE_MIN }}, MAX = {{ opt.AGE_MAX }};
+    var lbl = function (a) { return a >= MAX ? a + '+' : String(a); };
+    var age = document.getElementById('age'), ageOut = document.getElementById('age-out');
+    age.addEventListener('input', function () { ageOut.textContent = lbl(+age.value); });
+
+    var lo = document.getElementById('age_min'), hi = document.getElementById('age_max');
+    var box = document.querySelector('.dual-range'), out = document.getElementById('range-out');
+    function update(e) {
+      if (+lo.value > +hi.value) {
+        if (e && e.target === lo) lo.value = hi.value; else hi.value = lo.value;
+      }
+      var a = +lo.value, b = +hi.value;
+      box.style.setProperty('--lo', (a - MIN) / (MAX - MIN));
+      box.style.setProperty('--hi', (b - MIN) / (MAX - MIN));
+      out.textContent = (a <= MIN && b >= MAX) ? 'any age' : (b >= MAX ? a + '+' : a + '–' + b);
+      // When both handles meet at the far right, keep the left one grabbable.
+      lo.style.zIndex = (a >= MAX - 1) ? 4 : 3;
+    }
+    lo.addEventListener('input', update); hi.addEventListener('input', update); update();
+  })();
+</script>
+{% endblock %}
+{% block content %}
+<section class="form-page">
+  {{ progress(steps, step_no) }}
+  <h1>Who would you like to meet?</h1>
+  <p class="muted">Last page. Then you're in the pool for next week.</p>
+
+  {% if errors %}<p class="alert" role="alert">A few things need a look. They're marked below.</p>{% endif %}
+
+  <form method="post" action="/profile/prefs" class="profile-form" novalidate>
+    {% set age = p.get('age') if p.get('age') is not none else opt.AGE_DEFAULT %}
+    {% set lo = p.get('age_min') if p.get('age_min') is not none else opt.AGE_MIN %}
+    {% set hi = p.get('age_max') if p.get('age_max') is not none else opt.AGE_MAX %}
+
+    <fieldset class="block {% if errors.age %}has-error{% endif %}">
+      <legend><span class="q-num">1</span> Your age</legend>
+      <div class="slider-head"><output class="slider-value" id="age-out" for="age">{{ age_label(age) }}</output></div>
+      <input type="range" class="slider" id="age" name="age" min="{{ opt.AGE_MIN }}" max="{{ opt.AGE_MAX }}" step="1"
+             value="{{ age }}" aria-describedby="age-hint">
+      <div class="slider-scale" aria-hidden="true"><span>{{ opt.AGE_MIN }}</span><span>{{ opt.AGE_MAX }}+</span></div>
+      <p class="hint" id="age-hint">Only used to respect other people's age preferences. Nobody at your table sees it.</p>
+      {{ err(errors, 'age') }}
+    </fieldset>
+
+    <fieldset class="block">
+      <legend><span class="q-num">2</span> Ages you'd like at your table</legend>
+      <div class="slider-head"><output class="slider-value" id="range-out">{{ age_range_label(lo, hi) }}</output></div>
+      <div class="dual-range" style="--lo: {{ (lo - opt.AGE_MIN) / (opt.AGE_MAX - opt.AGE_MIN) }}; --hi: {{ (hi - opt.AGE_MIN) / (opt.AGE_MAX - opt.AGE_MIN) }}">
+        <div class="dual-track" aria-hidden="true"><div class="dual-fill"></div></div>
+        <input type="range" class="slider" id="age_min" name="age_min" min="{{ opt.AGE_MIN }}" max="{{ opt.AGE_MAX }}" step="1"
+               value="{{ lo }}" aria-label="Youngest age">
+        <input type="range" class="slider" id="age_max" name="age_max" min="{{ opt.AGE_MIN }}" max="{{ opt.AGE_MAX }}" step="1"
+               value="{{ hi }}" aria-label="Oldest age">
+      </div>
+      <div class="slider-scale" aria-hidden="true"><span>{{ opt.AGE_MIN }}</span><span>{{ opt.AGE_MAX }}+</span></div>
+      <p class="hint">Drag both ends. All the way out means any age. A narrow range can mean waiting longer for a table.</p>
+    </fieldset>
+
+    <fieldset class="block {% if errors.friend_email %}has-error{% endif %}">
+      <legend><span class="q-num">3</span> Coming with a friend? <span class="optional">optional</span></legend>
+      <input type="email" name="friend_email" inputmode="email" autocapitalize="off" spellcheck="false"
+             placeholder="Your friend's university email" value="{{ p.get('friend_email') or '' }}">
+      <p class="hint">If you both enter each other's email, you'll always sit at the same table.</p>
+      {{ err(errors, 'friend_email') }}
+    </fieldset>
+
+    <div class="consent {% if errors.consent %}has-error{% endif %}">
+      <label class="check-row">
+        <input type="checkbox" name="consent" value="yes"
+               {% if (not is_new and not errors) or p.get('consent_checked') %}checked{% endif %}>
+        <span>I agree that Mahlzeit! uses this information to match me into lunch groups, as described in the
+          <a href="/privacy" target="_blank">privacy notice</a>. I can delete it any time.</span>
+      </label>
+      {{ err(errors, 'consent') }}
+    </div>
+
+    <div class="step-nav">
+      <a href="/profile/where" class="btn btn-secondary">Back</a>
+      <button type="submit" class="btn btn-primary">{% if is_new %}Join the next lunch{% else %}Save changes{% endif %}</button>
+    </div>
+  </form>
+</section>
+<script>
+  // Live labels for the sliders, and keep the two range handles from crossing.
+  (function () {
+    var MIN = {{ opt.AGE_MIN }}, MAX = {{ opt.AGE_MAX }};
+    var lbl = function (a) { return a >= MAX ? a + '+' : String(a); };
+    var age = document.getElementById('age'), ageOut = document.getElementById('age-out');
+    age.addEventListener('input', function () { ageOut.textContent = lbl(+age.value); });
+
+    var lo = document.getElementById('age_min'), hi = document.getElementById('age_max');
+    var box = document.querySelector('.dual-range'), out = document.getElementById('range-out');
+    function update(e) {
+      if (+lo.value > +hi.value) {
+        if (e && e.target === lo) lo.value = hi.value; else hi.value = lo.value;
+      }
+      var a = +lo.value, b = +hi.value;
+      box.style.setProperty('--lo', (a - MIN) / (MAX - MIN));
+      box.style.setProperty('--hi', (b - MIN) / (MAX - MIN));
+      out.textContent = (a <= MIN && b >= MAX) ? 'any age' : (b >= MAX ? a + '+' : a + '–' + b);
+      // When both handles meet at the far right, keep the left one grabbable.
+      lo.style.zIndex = (a >= MAX - 1) ? 4 : 3;
+    }
+    lo.addEventListener('input', update); hi.addEventListener('input', update); update();
+  })();
+</script>
+{% endblock %}

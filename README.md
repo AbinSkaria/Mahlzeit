@@ -65,39 +65,48 @@ Sign-up form  →  Matching engine  →  Group of four  →  Blind reveal  →  
 
 ## 🧰 Tech Stack
 
-> ✏️ *Adjust this section to match your final implementation.*
-
-- **Frontend:** _e.g. static web form / HTML + JavaScript_
-- **Backend / matching:** _e.g. Python_
-- **Storage:** _e.g. EU-hosted database or spreadsheet_
-- **Notifications:** _e.g. e-mail via university SMTP_
+- **Frontend:** server-rendered HTML pages (Jinja2) + one CSS file, mobile-first, no external fonts, scripts or trackers (GDPR)
+- **Backend / matching:** Python 3, FastAPI; matching algorithm in plain Python (`app/matching.py`)
+- **Storage:** SQLite (one file, `mahlzeit.db`), on a university server in production
+- **Login & notifications:** passwordless email sign-in link via the university SMTP server (demo mode shows the link on screen)
 
 ## 🚀 Getting Started
 
 ```bash
-# Clone the repository
-git clone https://github.com/<your-username>/<your-repo>.git
-cd <your-repo>
-
-# Install dependencies
-# (replace with your actual setup)
+git clone https://github.com/AbinSkaria/Challenge_7.git
+cd Challenge_7
+python -m venv .venv
+.venv\Scripts\activate            # Mac/Linux: source .venv/bin/activate
 pip install -r requirements.txt
-
-# Run the matching script
-python match.py
+python -m app.seed                 # optional: 60 fake demo students
+uvicorn app.main:app --reload      # then open http://localhost:8000
 ```
 
-## 📁 Project Structure
+To allow Gmail addresses for testing, create a file `.env` (it is never uploaded) with
+`MAHLZEIT_ALLOWED_DOMAINS=thws.de,gmail.com` and start with `uvicorn app.main:app --reload --env-file .env`.
+Details are in the technical documentation below.
 
-> ✏️ *Update to reflect your actual layout.*
+## 📁 Project Structure
 
 ```
 .
 ├── README.md
-├── docs/              # Concept, privacy notes, presentation
-├── src/               # Matching logic and application code
-├── data/              # Sample / anonymised test data (no real personal data!)
-└── LICENSE
+├── requirements.txt       # Python packages
+├── .env.example           # settings template (copy to .env, never upload .env)
+└── app/
+    ├── main.py            # all web pages and actions (routes)
+    ├── matching.py        # the matching algorithm
+    ├── rounds.py          # matching rounds, table animals, check-in codes, feedback stats
+    ├── safety.py          # anonymous reports
+    ├── profiles.py        # the 3 profile pages
+    ├── auth.py            # email-link login, Lunch IDs
+    ├── db.py              # database tables
+    ├── options.py         # Mensas, faculties, languages, ages, this-or-that
+    ├── icebreakers.py     # conversation starters
+    ├── seed.py            # fake demo data (no real personal data)
+    ├── mailer.py          # login emails
+    ├── templates/         # HTML pages
+    └── static/style.css   # design
 ```
 
 ## 🛡️ Data Protection
@@ -117,10 +126,11 @@ python match.py
 
 ## 🗺️ Roadmap
 
-- [ ] Sign-up form prototype
-- [ ] Matching algorithm (v1)
-- [ ] Blind reveal notifications
-- [ ] Admin dashboard
+- [x] Sign-up form prototype (email-link login + 3-page profile)
+- [x] Matching algorithm (v1)
+- [x] Admin dashboard (registration balance, tables, check-ins, feedback, reports)
+- [x] Check-in at the Mensa with a table code + anonymous reporting
+- [ ] Blind reveal notifications (table emails before the lunch)
 - [ ] Pilot lunch at one campus
 - [ ] Feedback and follow-up loop
 - [ ] Roll-out to further campuses
@@ -137,3 +147,136 @@ _Add team members here._
 ## 📄 License
 
 _Choose a license (e.g. MIT) and add a `LICENSE` file._
+
+---
+
+# Technical documentation
+
+The app is called **Mahlzeit!** (German lunchtime greeting, roughly "enjoy your meal").
+
+Lunch for four: two students new to Germany, two locals. Hackathon prototype.
+
+## Run it locally
+
+```bash
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+Open http://localhost:8000.
+
+- `python -m venv .venv` creates an isolated Python environment for this project, so its packages don't clash with others on your laptop.
+- `activate` switches your terminal into that environment.
+- `uvicorn ... --reload` starts the web server and restarts it automatically whenever you save a file.
+
+**Demo mode** (default): no mail server is needed. After you enter an email, the "Check your inbox" page shows the sign-in link as a button, and the link is also printed in the terminal.
+
+Only university emails are accepted. The default allows `@thws.de` and any subdomain such as `@study.thws.de`. Change it with `MAHLZEIT_ALLOWED_DOMAINS` (see `.env.example`). For testing with any address, temporarily set `MAHLZEIT_ALLOWED_DOMAINS=thws.de,gmail.com`.
+
+## How login works
+
+Passwordless "magic link":
+
+1. Student enters their university email on `/login`.
+2. The server creates a random one-time token, stores only its SHA-256 hash, and emails a link `/auth/verify?token=...`.
+3. Clicking the link (valid 15 minutes, single use) logs them in. The first login creates the account, so registration and login are the same step.
+4. A signed session cookie keeps them logged in for 30 days.
+
+Why: no passwords to store, reset or leak; the email domain proves they're a THWS student; nothing to install.
+
+## Project layout
+
+```
+app/
+  main.py        routes: /, /login, /auth/verify, /home, /profile/{about,where,prefs}, /checkin, /badge, /lunch/done, /feedback, /report, /admin, /admin/cards, /logout, /privacy
+  auth.py        email validation, token creation/checking, throttling
+  db.py          SQLite schema (users, login_tokens, profiles, matching rounds, feedback, reports) — one file, no DB server
+  profiles.py    profile validation, saving, account deletion
+  options.py     form choices: campuses, faculties, languages, slots, this-or-that
+  matching.py    the matching algorithm (works on plain dicts, so also on CSV data)
+  icebreakers.py conversation starters per table
+  rounds.py      runs + stores matching rounds (table animals, check-in codes), check-in, feedback and stats
+  safety.py      anonymous reports, never-again pairs, pausing, logged reveals
+  seed.py        demo data generator
+  mailer.py      SMTP sending; prints the link instead in demo mode
+  templates/     Jinja2 HTML pages
+  static/        style.css (no external fonts or scripts, for GDPR)
+```
+
+## Production checklist
+
+- Set `MAHLZEIT_SECRET` to a long random string (otherwise everyone is logged out on restart).
+- Set `MAHLZEIT_DEMO=0` and configure `SMTP_*` with the university mail server.
+- Set `MAHLZEIT_HTTPS=1` behind HTTPS.
+- Confirm the student email domain with THWS IT.
+- Have the data protection officer review `/privacy` (currently a draft).
+
+
+## What students fill in
+
+No names: every account gets a random **Lunch ID** (e.g. `#K7P2QX`), and tablemates see only that.
+
+1. **About you** (`/profile/about`): new to Germany or local, faculty, languages, this-or-that picks (at least 3)
+2. **Where & when** (`/profile/where`): city, then a Mensa in that city, then lunch time slots
+3. **Who you'd like to meet** (`/profile/prefs`): age slider, age-range slider with two handles (full range = any),
+   friend's email (optional), consent
+4. **After the lunch** (on `/home`): "I'm done with lunch" / "I couldn't make it", then optional
+   **feedback** (`/feedback`): rating, stay in touch with the table, join another lunch, comment.
+   If everyone at a table says "stay in touch", their emails are shared with each other.
+
+At each table everyone also gets an **animal** (🦊 Fox, 🐢 Turtle, …), unique within the table, so people
+can say "I'm the Fox" instead of a name or a code.
+
+## Check-in at the Mensa with the table code
+
+- Each table gets a 4-digit code when the matching runs. Admin → **Print table cards** prints one card per
+  table (number, Mensa, time, code) to put on the tables, so the code is only visible at the Mensa.
+- On **My lunches**, the student types the code. If it's right, the phone shows a **badge**: "✓ Code accepted",
+  their animal in big letters, and which animals at the table have arrived (refreshes by itself). They hold it
+  up so everyone knows who is who.
+- Like a one-time password: only valid for this week's table (new round = new codes), only on the lunch day
+  from 30 minutes before to 2.5 hours after the lunch time (skipped in demo mode), and 5 wrong tries lock it.
+- A check-in counts as **verified attendance**; the admin page shows it next to the self-reported show-up rate.
+
+## Reporting without giving up anonymity (`/report`, `app/safety.py`)
+
+- On the feedback page (question 6) or at `/report`: pick the tablemate by their animal (or "I'm not sure who"),
+  a category, and optionally what happened.
+- The reported person is never told who reported them. The team sees Lunch IDs and animals only.
+- Automatic: a reported pair is never seated together again; someone reported by 2+ different people
+  is paused from matching until the team resolves the reports.
+- The team can reveal the emails behind a report; every reveal is logged (who, when). The reporter's
+  email is only revealed if they ticked "you may contact me".
+
+Edit the choices (Mensas, faculties, languages, age range, this-or-that) in `app/options.py`.
+"Delete my account and data" on `/home` removes everything for that user immediately (GDPR right to erasure).
+
+## Matching and the admin page
+
+```bash
+python -m app.seed                       # add 60 fake students (60% newcomers) for the demo
+python -m app.seed --n 100 --newcomers 0.7
+python -m app.seed --feedback            # fake feedback for the latest round (after matching)
+python -m app.seed --clear               # remove the fake students again
+```
+
+Then open http://localhost:8000/admin and click **Run matching**. Students see their table,
+time, tablemates and conversation starters on `/home`.
+
+- `app/matching.py` — the algorithm. Hard rules: same Mensa, a shared lunch slot, a shared
+  language, everyone within each other's age preferences, at least one newcomer and one local, friends together. Score: 2+2 balance, shared
+  this-or-that picks, faculty mix. Tables are built around the scarce group (usually locals),
+  filled with 2+2 first and 3+1 only for whoever is left, then repaired (a waiting local can
+  turn a 3+1 table into 2+2) and improved with swaps.
+- `app/icebreakers.py` — conversation starters from the group's shared picks (templates, no external AI).
+- `app/rounds.py` — runs the matcher on the database and stores each round. People on the
+  waitlist are placed first in the next round.
+- Admin access: set `MAHLZEIT_ADMINS=you@example.com,colleague@example.com`. If it's empty in
+  demo mode, every logged-in user can open `/admin`.
+
+## Next
+
+- Emails with the table number + "I'm coming / can't make it" buttons
+- Blind reveal: show tablemates only shortly before the lunch

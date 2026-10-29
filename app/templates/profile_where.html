@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% from "_macros.html" import err, progress %}
+{% block title %}Where & when · Mahlzeit!{% endblock %}
+{% block content %}
+<section class="form-page">
+  {{ progress(steps, step_no) }}
+  <h1>Where and when do you eat?</h1>
+  <p class="muted">We only match you with people at the same Mensa and time.</p>
+
+  {% if errors %}<p class="alert" role="alert">A few things need a look. They're marked below.</p>{% endif %}
+
+  <form method="post" action="/profile/where" class="profile-form where-form" novalidate>
+    <fieldset class="block {% if errors.city %}has-error{% endif %}">
+      <legend><span class="q-num">1</span> Which city?</legend>
+      <div class="chips">
+        {% for c in opt.CITIES %}
+          <label class="chip">
+            <input type="radio" name="city" value="{{ c }}" {% if p.get('city') == c %}checked{% endif %}>
+            <span>{{ c }}</span>
+          </label>
+        {% endfor %}
+      </div>
+      {{ err(errors, 'city') }}
+    </fieldset>
+
+    <fieldset class="block {% if errors.mensa %}has-error{% endif %}">
+      <legend><span class="q-num">2</span> Which Mensa?</legend>
+      <p class="hint top city-first">Pick a city first.</p>
+      {% for c, mensas in opt.MENSAS.items() %}
+        <div class="mensa-group" data-city="{{ c }}">
+          {% for mid, name, addr in mensas %}
+            <label class="choice-card mensa-card">
+              <input type="radio" name="mensa" value="{{ mid }}" {% if p.get('mensa') == mid %}checked{% endif %}>
+              <span class="choice-title">{{ name }}</span>
+              <span class="choice-desc">{{ addr }}, {{ c }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      {% endfor %}
+      {{ err(errors, 'mensa') }}
+    </fieldset>
+
+    <fieldset class="block {% if errors.slots %}has-error{% endif %}">
+      <legend><span class="q-num">3</span> When could you have lunch there?</legend>
+      <div class="slot-grid" role="group" aria-label="Lunch times">
+        <span></span>
+        {% for d in opt.DAYS %}<span class="slot-head">{{ d }}</span>{% endfor %}
+        {% for t in opt.TIMES %}
+          <span class="slot-time">{{ t }}</span>
+          {% for d in opt.DAYS %}
+            {% set s = d ~ '-' ~ t %}
+            <label class="slot">
+              <input type="checkbox" name="slots" value="{{ s }}" {% if s in (p.get('slots') or []) %}checked{% endif %} aria-label="{{ d }} {{ t }}">
+              <span aria-hidden="true"></span>
+            </label>
+          {% endfor %}
+        {% endfor %}
+      </div>
+      <p class="hint">Tap every time that could work. More times means a better match.</p>
+      {{ err(errors, 'slots') }}
+    </fieldset>
+
+    <div class="step-nav">
+      <a href="/profile/about" class="btn btn-secondary">Back</a>
+      <button type="submit" class="btn btn-primary">Next: who you'd like to meet</button>
+    </div>
+  </form>
+</section>
+
+<script>
+  // Show only the chosen city's Mensas (CSS does this too; this also clears a
+  // Mensa from the other city and pre-selects it when a city has just one).
+  (function () {
+    var form = document.querySelector('.where-form');
+    function update() {
+      var city = form.querySelector('input[name=city]:checked');
+      form.querySelectorAll('.mensa-group').forEach(function (g) {
+        var active = city && g.dataset.city === city.value;
+        g.querySelectorAll('input').forEach(function (i) { if (!active) i.checked = false; });
+        var radios = g.querySelectorAll('input');
+        if (active && radios.length === 1) radios[0].checked = true;
+      });
+    }
+    form.querySelectorAll('input[name=city]').forEach(function (i) { i.addEventListener('change', update); });
+  })();
+</script>
+{% endblock %}

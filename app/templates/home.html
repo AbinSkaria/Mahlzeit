@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}My lunches · Mahlzeit!{% endblock %}
+{% block content %}
+<section class="auth-card wide">
+  <p class="eyebrow">Your Lunch ID: <span class="lunch-id">#{{ user.lunch_id }}</span></p>
+
+  {% if saved %}<p class="success" role="status">Saved. You're in the pool for next week's lunches.</p>{% endif %}
+  {% if thanks %}<p class="success" role="status">Thanks for the feedback!</p>{% endif %}
+  {% if reported %}<p class="success" role="status">Report received. The team will look at it. Nobody at your table is told who reported.</p>{% endif %}
+
+  {% if table %}
+    {% set me = (table.people | selectattr('user_id', 'equalto', user.id) | list)[0] %}
+    {% set fb_done = my_feedback and (my_feedback.rating or my_feedback.meet_again or my_feedback.join_again or my_feedback.comment) %}
+    <h1>Mahlzeit!</h1>
+    <div class="my-animal">
+      <span class="big-emoji" aria-hidden="true">{{ me.emoji }}</span>
+      <div>
+        <p class="eyebrow">At this table you're</p>
+        <h2>the {{ me.animal_name }}</h2>
+        <p class="muted">Say "I'm the {{ me.animal_name }}" when you sit down. No names needed.</p>
+      </div>
+    </div>
+    <div class="my-table">
+      <span class="table-no big">{{ table.table_no }}</span>
+      <div>
+        <p class="eyebrow">Your table</p>
+        <h2>{{ slot_label(table.slot) }}</h2>
+        <p class="muted">{{ mensa_name(table.mensa) }} · look for table flag {{ table.table_no }}</p>
+      </div>
+    </div>
+
+    <h3 class="with-title">You're eating with</h3>
+    <ul class="seat-list">
+      {% for p in table.people if p.user_id != user.id %}
+        <li><span class="mate-emoji" aria-hidden="true">{{ p.emoji }}</span><strong>the {{ p.animal_name }}</strong>{% if p.checked_in_at %} <span class="here-tag">✓ here</span>{% endif %}
+          <span class="mate-meta"><span class="dot {{ p.role }}"></span>{{ opt.ROLES[p.role][0] }}</span></li>
+      {% endfor %}
+    </ul>
+
+    {% if table.stay_in_touch %}
+      <div class="touch-box">
+        <h3>Your whole table wants to stay in touch!</h3>
+        <ul class="plain">{% for p in table.people if p.user_id != user.id %}<li>{{ p.emoji }} {{ p.animal_name }}: <a href="mailto:{{ p.email }}">{{ p.email }}</a></li>{% endfor %}</ul>
+      </div>
+    {% endif %}
+
+    <h3 class="with-title">Conversation starters</h3>
+    <ul class="ice">{% for q in table.icebreakers %}<li>{{ q }}</li>{% endfor %}</ul>
+
+    <div class="feedback-cta" id="checkin">
+      {% if me.checked_in_at %}
+        <p><strong>✓ Checked in at table {{ table.table_no }}.</strong> <a href="/badge">Show my badge</a></p>
+        {% if fb_done %}
+          <p>✓ Feedback sent. Thank you! <a href="/feedback">Change it</a></p>
+        {% else %}
+          <a class="btn btn-primary btn-block" href="/feedback">I'm done with lunch</a>
+        {% endif %}
+      {% elif fb_done %}
+        <p>✓ Feedback sent. Thank you! <a href="/feedback">Change it</a></p>
+      {% elif my_feedback and my_feedback.attended == 'no' %}
+        <p><strong>✓ Noted that you couldn't make it.</strong> <a href="/feedback">Tell us why (optional)</a></p>
+      {% else %}
+        <p><strong>At the Mensa?</strong> Type the 4-digit code from the card on table {{ table.table_no }}.</p>
+        {% if checkin_closed %}<p class="hint">{{ checkin_closed }}</p>{% endif %}
+        {% if checkin == 'wrong' %}<p class="field-error" role="alert">That code isn't right. Check the card on table {{ table.table_no }}.</p>{% endif %}
+        {% if checkin == 'locked' or me.failed_checkins >= 5 %}
+          <p class="field-error" role="alert">Too many wrong codes. You can still tell us you were there in the feedback.</p>
+        {% elif not checkin_closed %}
+          <form method="post" action="/checkin" class="code-row">
+            <input class="code-input" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="4"
+                   autocomplete="one-time-code" placeholder="0000" aria-label="Table code" required>
+            <button type="submit" class="btn btn-primary">Check in</button>
+          </form>
+        {% endif %}
+        <form method="post" action="/lunch/done" class="skip-row">
+          <button type="submit" name="attended" value="no" class="as-link">I couldn't make it</button>
+          <span aria-hidden="true">·</span>
+          <a href="/feedback">No code? Give feedback anyway</a>
+        </form>
+      {% endif %}
+    </div>
+    <p class="report-link">Problem with someone at your table? <a href="/report">Report it privately</a></p>
+
+  {% elif profile %}
+    <h1>Mahlzeit!</h1>
+    {% if round_exists %}
+      <p class="muted">This week's tables were full at your Mensa and times. You're first in line for next week's matching.</p>
+    {% else %}
+      <p class="muted">You're in the pool. We'll email you your table number before next week's lunches start.</p>
+    {% endif %}
+  {% else %}
+    <h1>You're in. Mahlzeit!</h1>
+    <p class="muted">Three short pages and you're ready: about you, where and when you eat, and who you'd like to meet.</p>
+  {% endif %}
+
+  <ol class="checklist">
+    <li class="done"><span class="check">✓</span> <span class="label">Verify your email</span></li>
+    {% if profile %}
+      <li class="done"><span class="check">✓</span> <span class="label">Set up your lunch profile</span></li>
+    {% else %}
+      <li class="todo"><span class="check">2</span> Set up your lunch profile <span class="tag">3 short pages</span></li>
+    {% endif %}
+    {% if table %}
+      <li class="done"><span class="check">✓</span> <span class="label">Get matched</span></li>
+      <li class="{% if me.checked_in_at %}done{% else %}todo{% endif %}"><span class="check">{% if me.checked_in_at %}✓{% else %}4{% endif %}</span>
+        <span class="label">Check in at the Mensa</span></li>
+      <li class="{% if fb_done %}done{% else %}todo{% endif %}"><span class="check">{% if fb_done %}✓{% else %}5{% endif %}</span>
+        <span class="label">Feedback after lunch</span> {% if not fb_done %}<span class="tag">optional</span>{% endif %}</li>
+    {% else %}
+      <li class="todo"><span class="check">3</span> Get matched for next week {% if profile %}<span class="tag">waiting</span>{% endif %}</li>
+    {% endif %}
+  </ol>
+
+  {% if profile %}
+    {% set langs = dict(opt.LANGUAGES) %}
+    <details class="profile-details" {% if not table %}open{% endif %}>
+      <summary>My profile</summary>
+      <dl class="summary">
+        <div><dt>You are</dt><dd>{{ opt.ROLES[profile.role][0] }} · {{ profile.faculty }}</dd></div>
+        <div><dt>Languages</dt><dd>{% for l in profile.languages %}{{ langs[l] }}{% if not loop.last %}, {% endif %}{% endfor %}</dd></div>
+        <div><dt>Picks</dt><dd>{{ profile.answers.values() | join(' · ') }}</dd></div>
+        <div><dt>Mensa</dt><dd>{{ mensa_name(profile.mensa) }}</dd></div>
+        <div><dt>Lunch times</dt><dd>{{ profile.slots | map('replace', '-', ' ') | join(', ') }}</dd></div>
+        <div><dt>Age</dt><dd>{{ age_label(profile.age) }} · meets {{ age_range_label(profile.age_min, profile.age_max) }}</dd></div>
+        {% if profile.friend_email %}<div><dt>Friend</dt><dd>{{ profile.friend_email }}</dd></div>{% endif %}
+      </dl>
+      <a class="btn btn-secondary btn-block" href="/profile/about">Edit my profile</a>
+    </details>
+  {% else %}
+    <a class="btn btn-primary btn-block" href="/profile/{{ next_step }}">{% if started %}Continue my profile{% else %}Set up my lunch profile{% endif %}</a>
+  {% endif %}
+
+  <details class="danger-zone">
+    <summary>Delete my account and data</summary>
+    <p class="muted">This removes your email, profile, feedback and everything else we stored about you, right away. You can sign up again any time.</p>
+    <form method="post" action="/account/delete" onsubmit="return confirm('Delete your account and all your data?');">
+      <button type="submit" class="btn btn-danger">Delete everything</button>
+    </form>
+  </details>
+</section>
+{% endblock %}
